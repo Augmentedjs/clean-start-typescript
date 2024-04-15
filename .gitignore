@@ -1,0 +1,17 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+coverage
+.DS_Store
+
+# Dependency directories
+node_modules
+
+# Optional npm cache directory
+.npm
+
+# Prod Bundle
+dist
+package-lock.json
+public
