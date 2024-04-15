@@ -12,10 +12,6 @@ const LOGO = "src/images/elements.png";
 
 console.info(`Mode: ${((isProd) ? "Production" : "Development")}`);
 
-const outputPath = (process.env.IN_DOCKER ? "public.com" : "../public.com");
-
-console.info(`Output: ${path.resolve(__dirname, outputPath)}`);
-
 const build = {
   entry: "./src/index.tsx",
   context: __dirname,
