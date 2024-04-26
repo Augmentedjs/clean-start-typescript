@@ -31,7 +31,7 @@ const build = {
   module: {
     rules: [
       {
-        test: /\.ts*?$/,
+        test: /\.tsx|ts?$/,
         exclude: /node_modules/,
         use: {
           loader: "ts-loader"
