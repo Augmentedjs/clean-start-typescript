@@ -2,7 +2,7 @@
   "name": "clean-start-typescript",
   "version": "1.0.0",
   "description": "webpack, babel, react, typescript, express, and sass.",
-  "main": "server/index.js",
+  "main": "service/index.js",
   "scripts": {
     "start": "node ./service/index.js",
     "start:dev": "webpack serve --mode development",
