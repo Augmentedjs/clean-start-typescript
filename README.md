@@ -3,7 +3,7 @@ A Node Express Service using React with Typescript starter project
 
 A simple clean webpack 5, babel, express.js, sass, React project setup for use.
 
-`npx clean-start-react app-name` to create a base webpack/babel/sass/react setup into `app-name` folder.
+`npx clean-start-typescript app-name` to create a base webpack/babel/sass/react setup into `app-name` folder.
 
 ## Basic setup
 
