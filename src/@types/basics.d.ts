@@ -1,29 +1,32 @@
-// Basic app types for React and front-end builds
+declare module "*.css";
 
-declare module "*.svg";
+declare module "*.svg?component" {
+  import type { FunctionComponent, SVGProps } from "react";
+  const Component: FunctionComponent<SVGProps<SVGSVGElement>>;
+  export default Component;
+}
 
-// declare module '*.svg?svgr' {
-//   type SvgComponent = ComponentType<SVGProps>;
-//   const Svg: SvgComponent;
-//   export = Svg;
-// }
+declare module "*.svg" {
+  const url: string;
+  export default url;
+}
 
 declare module "*.jpg" {
-  const content: string;
-  export default content;
+  const url: string;
+  export default url;
 }
 
 declare module "*.png" {
-  const content: string;
-  export default content;
-}
-
-declare module "*.json" {
-  const content: string;
-  export default content;
+  const url: string;
+  export default url;
 }
 
 declare module "*.gif" {
-  const content: string;
-  export default content;
+  const url: string;
+  export default url;
+}
+
+declare module "*.webp" {
+  const url: string;
+  export default url;
 }

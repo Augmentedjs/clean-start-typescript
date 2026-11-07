@@ -1,0 +1,6 @@
+/* Add application styles here, or use Material UI's theme and sx prop. */
+html,
+body,
+#main {
+  min-height: 100%;
+}

@@ -1,36 +1,37 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-
-import {
-  createHashRouter,
-  RouterProvider
-} from "react-router-dom";
-
-import "./styles/main.scss";
-
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { createHashRouter, RouterProvider } from "react-router-dom";
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import "./styles/main.css";
 import App from "./app";
 import ErrorPage from "./layout/errorPage";
 import Home from "./home";
 
-// Router
+const theme = createTheme({
+  palette: {
+    primary: { main: "#1565c0" }
+  }
+});
+
 const router = createHashRouter([
   {
     path: "/",
     element: <App />,
     errorElement: <ErrorPage />,
-    children: [
-      {
-        path: "",
-        element: <Home />
-      }
-    ]
+    children: [{ index: true, element: <Home /> }]
   }
 ]);
 
-const root = ReactDOM.createRoot(
-  document.getElementById("main") as HTMLElement);
-root.render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>
+const container = document.getElementById("main");
+if (!container) {
+  throw new Error("The application root #main was not found.");
+}
+
+createRoot(container).render(
+  <StrictMode>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  </StrictMode>
 );
