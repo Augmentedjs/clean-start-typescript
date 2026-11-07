@@ -1,126 +1,91 @@
-import path from "path";
-import HtmlWebPackPlugin from "html-webpack-plugin";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import HtmlWebpackPlugin from "html-webpack-plugin";
 import FaviconsWebpackPlugin from "favicons-webpack-plugin";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
-import { fileURLToPath } from "url";
 
-const isProd = process.argv[process.argv.indexOf("--mode") + 1] === "production";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const root = path.dirname(fileURLToPath(import.meta.url));
 
-const LOGO = "src/images/elements.png";
+export default (_env, argv) => {
+  const isProduction = argv.mode === "production";
 
-console.info(`Mode: ${((isProd) ? "Production" : "Development")}`);
-
-const build = {
-  entry: "./src/index.tsx",
-  context: __dirname,
-  target: "web",
-  output: {
-    clean: true,
-    filename: "index.js",
-    path: path.resolve(__dirname, "public")
-  },
-  resolve: {
-    extensions: [ ".tsx", ".ts", ".js", ".jsx" ],
-    fallback: {
-      "react/jsx-dev-runtime": "react/jsx-dev-runtime.js",
-      "react/jsx-runtime": "react/jsx-runtime.js"
-    }
-  },
-  module: {
-    rules: [
-      {
-        test: /\.tsx|ts?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: "ts-loader"
-        }
-      },
-      {
-        test: /\.(jp(e*)g|png|svg|gif)$/,
-        type: "asset/resource",
-      },
-      {
-        test: /\.svg$/i,
-        issuer: /\.[jt]sx?$/,
-        use: ["@svgr/webpack"]
-      },
-      {
-        test: /\.(eot|ttf|otf|woff|woff2)$/,
-        type: "asset/resource",
-        dependency: { not: ["url"] }
-      }, 
-      {
-        test: /\.(css|scss)$/,
-        use: [
-          {
-            loader: "style-loader"
-          },
-          {
-            loader: "css-loader", options: {
-              sourceMap: true
-            }
-          },
-          {
-            loader: "sass-loader", options: {
-              sourceMap: true
+  return {
+    context: root,
+    entry: "./src/index.tsx",
+    target: "web",
+    output: {
+      clean: true,
+      filename: isProduction ? "[name].[contenthash].js" : "[name].js",
+      path: path.resolve(root, "public"),
+      publicPath: "/"
+    },
+    resolve: {
+      extensions: [".tsx", ".ts", ".js", ".jsx"]
+    },
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          exclude: /node_modules/,
+          use: {
+            loader: "swc-loader",
+            options: {
+              jsc: {
+                parser: { syntax: "typescript", tsx: true },
+                transform: { react: { runtime: "automatic" } },
+                target: "es2023"
+              }
             }
           }
-        ]
-      }
-    ]
-  },
-  stats: "errors-only",
-  devtool: isProd ? false : "cheap-module-source-map",
-  devServer: {
-    static: {
-      directory: path.join(__dirname, "dist"),
-    },
-    compress: true,
-    port: 8080
-  },
-  plugins: [
-    new HtmlWebPackPlugin({
-      template: "./src/index.html",
-      filename: "index.html",
-      favicon: ""
-    }),
-    new FaviconsWebpackPlugin({
-      logo: LOGO,
-      prefix: "images/",
-      inject: true,
-      cache: true,
-      favicons: {
-      icons: {
-            // Platform Options:
-            // - offset - offset in percentage
-            // - background:
-            //   * false - use default
-            //   * true - force use default, e.g. set background for Android icons
-            //   * color - set background for the specified icons
-            //   * mask - apply mask in order to create circle icon (applied by default for firefox). `boolean`
-            //   * overlayGlow - apply glow effect after mask has been applied (applied by default for firefox). `boolean`
-            //   * overlayShadow - apply drop shadow after mask has been applied .`boolean`
-            //
-            android: false,              // Create Android homescreen icon. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            appleIcon: false,            // Create Apple touch icons. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            appleStartup: false,         // Create Apple startup images. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            coast: false,                // Create Opera Coast icon. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            favicons: true,             // Create regular favicons. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            firefox: false,              // Create Firefox OS icons. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            windows: false,              // Create Windows 8 tile icons. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
-            yandex: false                // Create Yandex browser icon. `boolean` or `{ offset, background, mask, overlayGlow, overlayShadow }`
+        },
+        {
+          test: /\.svg$/i,
+          oneOf: [
+            { resourceQuery: /component/, use: ["@svgr/webpack"] },
+            { type: "asset/resource" }
+          ]
+        },
+        {
+          test: /\.(png|jpe?g|gif|webp|avif|ico|eot|ttf|otf|woff2?)$/i,
+          type: "asset/resource"
+        },
+        {
+          test: /\.css$/i,
+          use: [
+            isProduction ? MiniCssExtractPlugin.loader : "style-loader",
+            { loader: "css-loader", options: { sourceMap: !isProduction } }
+          ]
         }
-      }
-    }),
-    new MiniCssExtractPlugin({
-      // Options similar to the same options in webpackOptions.output
-      // both options are optional
-      filename: "[name].css",
-      chunkFilename: "[id].css"
-    })
-  ]
+      ]
+    },
+    stats: "errors-warnings",
+    devtool: isProduction ? false : "cheap-module-source-map",
+    devServer: {
+      static: { directory: path.resolve(root, "public") },
+      compress: true,
+      port: 8080,
+      hot: true,
+      proxy: [
+        { context: ["/api", "/about"], target: "http://localhost:3000" }
+      ]
+    },
+    plugins: [
+      new HtmlWebpackPlugin({ template: "./src/index.html" }),
+      new FaviconsWebpackPlugin({
+        logo: "./src/images/elements.png",
+        prefix: "images/",
+        favicons: {
+          icons: {
+            android: false,
+            appleIcon: false,
+            appleStartup: false,
+            favicons: true,
+            windows: false,
+            yandex: false
+          }
+        }
+      }),
+      ...(isProduction ? [new MiniCssExtractPlugin({ filename: "[name].[contenthash].css" })] : [])
+    ]
+  };
 };
-
-export default build;

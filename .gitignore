@@ -1,17 +1,15 @@
-# Logs
+# Logs and local files
 logs
 *.log
-npm-debug.log*
 coverage
 .DS_Store
+.env
+.env.*
+!.env.example
 
-# Dependency directories
-node_modules
-
-# Optional npm cache directory
-.npm
-
-# Prod Bundle
-dist
-package-lock.json
-public
+# Dependencies and generated output
+node_modules/
+.npm/
+dist/
+public/
+*.tgz

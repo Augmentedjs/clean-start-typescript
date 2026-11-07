@@ -1,0 +1,15 @@
+# Logs and local files
+logs
+*.log
+coverage
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output
+node_modules/
+.npm/
+dist/
+public/
+*.tgz

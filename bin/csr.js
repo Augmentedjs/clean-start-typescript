@@ -1,133 +1,117 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
-const { exec } = require("child_process");
+import { spawn } from "node:child_process";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createProgress } from "./progress.js";
 
-const packageJson = require("../package.json");
+const templateRoot = fileURLToPath(new URL("../", import.meta.url));
+const usage = "Usage: clean-start-typescript <app-directory> [--skip-install]";
+const progress = createProgress(4);
 
-const scripts = 
- `"start": "node ./service/index.js",
-  "dev": "webpack --mode development",
-  "build": "webpack --mode production",
-  "test": "mocha --require @babel/register --require test/helper.js -c test/*Spec.js",
-  "clean": "rm -rf node_modules",
-  "reinstall": "npm run clean && npm install",
-  "rebuild": "npm run clean && npm install && npm run build",
-  "start:dev": "webpack serve --mode development"`;
-
-const license = `"license": "Apache-2.0"`;
-
-const copyFolderSync = (from, to) => {
-  fs.mkdirSync(to);
-  fs.readdirSync(from).forEach(element => {
-    if (fs.lstatSync(path.join(from, element)).isFile()) {
-      fs.copyFileSync(path.join(from, element), path.join(to, element));
-    } else {
-      copyFolderSync(path.join(from, element), path.join(to, element));
-    }
-  });
-};
-
-/**
- * we pass the object key dependency || devdependency to this function
- * @param {object} deps object key that we want to extract
- * @returns {string} a string of "dependencies@version"
- * that we can attach to an `npm i {value}` to install
- * every dep the exact version specified in package.json
- */
-const getDeps = deps =>
-  Object.entries(deps)
-    .map(dep => `${dep[0]}@${dep[1]}`)
-    .toString()
-    .replace(/,/g, " ")
-    .replace(/^/g, "")
-    // exclude the plugin only used in this file, nor relevant to the boilerplate
-    .replace(/fs-extra[^\s]+/g, "");
-
-console.info("\x1b[34mInitializing project…\x1b[0m");
-
-// create folder and initialize npm
-exec(
-  `mkdir ${process.argv[2]} && cd ${process.argv[2]} && npm init -f`,
-  (initErr, initStdout, initStderr) => {
-    if (initErr) {
-      console.error(`\x1b[31mError: ${initErr}\x1b[0m`);
-      return;
-    }
-    const packageJSON = `${process.argv[2]}/package.json`;
-    // replace the default scripts, with the webpack scripts in package.json
-    fs.readFile(packageJSON, (err, file) => {
-      if (err) throw err;
-      const data = file
-        .toString()
-        .replace(`"test": "echo \\"Error: no test specified\\" && exit 1"`, scripts)
-        .replace(`"license": "Apache-2.0"`, license);
-      fs.writeFile(packageJSON, data, err2 => err2 || true);
+function installDependencies(target) {
+  return new Promise((resolve, reject) => {
+    // npm receives only fixed arguments; user-supplied paths are passed as cwd.
+    const npmScript = process.env.npm_execpath;
+    const useWindowsShell = !npmScript && process.platform === "win32";
+    const command = npmScript ? process.execPath : useWindowsShell ? "npm.cmd install" : "npm";
+    const args = npmScript ? [npmScript, "install"] : useWindowsShell ? [] : ["install"];
+    const child = spawn(command, args, {
+      cwd: target,
+      stdio: "inherit",
+      // Windows requires a shell to launch .cmd files. The command and arguments
+      // here are fixed, and no project names are interpolated into shell text.
+      shell: useWindowsShell
     });
-
-    const filesToCopy = ["README.md", "webpack.config.mjs", "tsconfig.json", ".babelrc"];
-
-    for (let i = 0; i < filesToCopy.length; i += 1) {
-      fs.createReadStream(path.join(__dirname, `../${filesToCopy[i]}`))
-        .pipe(fs.createWriteStream(`${process.argv[2]}/${filesToCopy[i]}`));
-    }
-
-    console.info("\x1b[37m • Fetching some files…\x1b[0m");
-
-    // npm will remove the .gitignore file when the package is installed, therefore it cannot be copied
-    // locally and needs to be downloaded.
-    https.get(
-      "https://raw.githubusercontent.com/Augmentedjs/clean-start-react/master/.gitignore",
-      (res) => {
-        res.setEncoding("utf8");
-        let body = "";
-        res.on("data", (data) => {
-          body += data;
-        });
-        res.on("end", () => {
-          fs.writeFile(`${process.argv[2]}/.gitignore`, body, { encoding: "utf-8" }, (err) => {
-            if (err) throw err;
-          });
-        });
-      },
-    );
-
-    console.info("\x1b[34mnpm init -- done!\x1b[0m");
-
-    // installing dependencies
-    console.info("\x1b[34mInstalling dependencies -- it might take a few minutes…\x1b[0m");
-    const devDeps = getDeps(packageJson.devDependencies);
-    const deps = getDeps(packageJson.dependencies);
-    exec(
-      `cd ${process.argv[2]} && npm i -D ${devDeps} && npm i -S ${deps}`,
-      (npmErr, npmStdout, npmStderr) => {
-        if (npmErr) {
-          console.error(`\x1b[31mError ${npmErr}\x1b[0m`);
-          return;
-        }
-        // console.info(npmStdout);
-        console.info("\x1b[34mDependencies installed!\x1b[0m");
-
-        try {
-          console.info("\x1b[37m • Copying additional files…\x1b[0m");
-          // copy additional source files
-          console.info(`\x1b[37m • Copying source…\x1b[0m`);
-          copyFolderSync(path.join(__dirname, "../src"), `${process.argv[2]}/src`);
-
-          console.info(`\x1b[34mCopying tests…\x1b[0m`);
-          copyFolderSync(path.join(__dirname, "../test"), `${process.argv[2]}/test`);
-
-          console.info(`\x1b[34mCopying service…\x1b[0m`);
-          copyFolderSync(path.join(__dirname, "../service"), `${process.argv[2]}/service`);
-
-          console.info(`\x1b[1m\x1b[36mAll done!\nYour project is now started into ${process.argv[2]} folder,
-            refer to the README for the project structure.\nMany thanks from Augmentedjs.com (https://www.augmentedjs.com)!\x1b[0m`);
-        } catch(e) {
-          console.error("\x1b[31mError\x1b[0m", e);
-        }
+    const fail = reason => reject(new Error(
+      `Dependency installation failed (${reason}).\nProject files were kept at: ${target}\nOpen that directory and run npm install to retry.`
+    ));
+    child.once("error", error => fail(error.message));
+    child.once("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        fail(signal ? `npm was terminated by ${signal}` : `npm exited with code ${code}`);
       }
-    );
+    });
+  });
+}
+
+async function createProject(args) {
+  if (args.includes("--help") || args.includes("-h")) {
+    console.info(`${usage}\n\nCreates a React, Material UI and TypeScript app with an Express service.\nRequires Node.js 26 and npm 12 or newer.\nUse --skip-install to create files without installing dependencies.\nSet NO_COLOR=1 to disable color output.`);
+    return;
   }
-);
+
+  const directories = args.filter(arg => !arg.startsWith("--"));
+  const unknownOption = args.find(arg => arg.startsWith("--") && arg !== "--skip-install");
+  if (directories.length !== 1 || unknownOption || !directories[0].trim()) {
+    throw new Error(unknownOption ? `Unknown option: ${unknownOption}\n${usage}` : usage);
+  }
+
+  const templatePackage = JSON.parse(readFileSync(path.join(templateRoot, "package.json"), "utf8"));
+  const target = path.resolve(directories[0]);
+  const skipInstall = args.includes("--skip-install");
+  progress.heading(templatePackage.version);
+
+  await progress.step("Checking environment and destination", () => {
+    if (Number(process.versions.node.split(".")[0]) !== 26) {
+      throw new Error("Node.js 26 is required. Run `nvm install 26` and `nvm use 26` first.");
+    }
+    if (existsSync(target)) {
+      throw new Error(`Destination already exists: ${target}`);
+    }
+    console.info(`  Node ${process.versions.node}\n  Destination: ${target}`);
+  });
+
+  await progress.step("Creating project configuration", () => {
+    const { "test:generator": generatorTest, ...scripts } = templatePackage.scripts;
+    const name = path.basename(target).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[._-]+/, "") || "my-app";
+    const appPackage = {
+      name,
+      version: "1.0.0",
+      private: true,
+      description: "React, Material UI and TypeScript with an Express service.",
+      type: "module",
+      engines: templatePackage.engines,
+      scripts,
+      license: templatePackage.license,
+      dependencies: templatePackage.dependencies,
+      devDependencies: templatePackage.devDependencies
+    };
+
+    mkdirSync(target, { recursive: true });
+    writeFileSync(path.join(target, "package.json"), `${JSON.stringify(appPackage, null, 2)}\n`);
+  });
+
+  await progress.step("Copying application, service and tests", () => {
+    const files = [
+      "README.md", "LICENSE", "webpack.config.mjs", "tsconfig.json",
+      "tsconfig.server.json", "tsconfig.test.json", ".nvmrc", ".node-version",
+      "src", "service", "test"
+    ];
+    for (const file of files) {
+      cpSync(path.join(templateRoot, file), path.join(target, file), { recursive: true });
+    }
+    cpSync(path.join(templateRoot, "templates/gitignore"), path.join(target, ".gitignore"));
+  });
+
+  if (skipInstall) {
+    progress.skip("Installing dependencies (--skip-install)");
+  } else {
+    await progress.step("Installing dependencies with npm", () => {
+      console.info("  Live npm output follows. This may take a few minutes.\n");
+      return installDependencies(target);
+    });
+  }
+
+  progress.complete(target, skipInstall);
+}
+
+try {
+  await createProject(process.argv.slice(2));
+} catch (error) {
+  progress.error(error);
+  process.exitCode = 1;
+}

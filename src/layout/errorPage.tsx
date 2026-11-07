@@ -1,19 +1,17 @@
-import { useRouteError } from "react-router-dom";
+import { Container, Typography } from "@mui/material";
+import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 
 const ErrorPage = () => {
-  const error: any = useRouteError();
-  console.error(error);
+  const error: unknown = useRouteError();
+  const message = isRouteErrorResponse(error)
+    ? error.statusText
+    : error instanceof Error ? error.message : "An unexpected error has occurred.";
 
   return (
-    <div id="error-page">
-      <h1>Oops!</h1>
-      <p>Sorry, an unexpected error has occurred.</p>
-      {(error) && (error.statusText || error.message) && (
-        <p>
-          <i>{error.statusText || error.message}</i>
-        </p>
-      )}
-    </div>
+    <Container component="main" id="error-page" sx={{ py: 6 }}>
+      <Typography variant="h3" component="h1">Oops!</Typography>
+      <Typography role="alert">{message}</Typography>
+    </Container>
   );
 };
 
