@@ -1,6 +1,6 @@
 {
   "name": "clean-start-typescript",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A Node 26, Express, React, Material UI and TypeScript starter powered by webpack.",
   "type": "module",
   "engines": {

@@ -10,7 +10,7 @@ const templateRoot = fileURLToPath(new URL("../", import.meta.url));
 const usage = "Usage: clean-start-typescript <app-directory> [--skip-install]";
 const progress = createProgress(4);
 
-function installDependencies(target) {
+const installDependencies = target => {
   return new Promise((resolve, reject) => {
     // npm receives only fixed arguments; user-supplied paths are passed as cwd.
     const npmScript = process.env.npm_execpath;
@@ -36,9 +36,9 @@ function installDependencies(target) {
       }
     });
   });
-}
+};
 
-async function createProject(args) {
+const createProject = async args => {
   if (args.includes("--help") || args.includes("-h")) {
     console.info(`${usage}\n\nCreates a React, Material UI and TypeScript app with an Express service.\nRequires Node.js 26 and npm 12 or newer.\nUse --skip-install to create files without installing dependencies.\nSet NO_COLOR=1 to disable color output.`);
     return;
@@ -107,7 +107,7 @@ async function createProject(args) {
   }
 
   progress.complete(target, skipInstall);
-}
+};
 
 try {
   await createProject(process.argv.slice(2));

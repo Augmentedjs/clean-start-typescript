@@ -10,7 +10,7 @@ interface AppOptions {
   allowedOrigins?: string[];
 }
 
-export function createApp({ publicDirectory = path.resolve("public"), allowedOrigins = getConfig().allowedOrigins }: AppOptions = {}) {
+export const createApp = ({ publicDirectory = path.resolve("public"), allowedOrigins = getConfig().allowedOrigins }: AppOptions = {}) => {
   const app = express();
   app.disable("x-powered-by");
   app.use(compression({
@@ -44,4 +44,4 @@ export function createApp({ publicDirectory = path.resolve("public"), allowedOri
   app.use(handleError);
 
   return app;
-}
+};
