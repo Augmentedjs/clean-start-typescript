@@ -8,15 +8,15 @@ import { test } from "node:test";
 
 const cli = fileURLToPath(new URL("../bin/csr.js", import.meta.url));
 
-function fixture(t) {
+const fixture = t => {
   const directory = mkdtempSync(path.join(tmpdir(), "clean-start-generator-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return directory;
-}
+};
 
-function run(cwd, args, env = process.env) {
+const run = (cwd, args, env = process.env) => {
   return spawnSync(process.execPath, [cli, ...args], { cwd, env, encoding: "utf8" });
-}
+};
 
 test("generates a complete project in a nested path with spaces and shell characters", t => {
   const directory = fixture(t);

@@ -83,7 +83,7 @@ test("preserves the body parser's payload size limit", async () => {
   assert.equal(response.status, 413);
 });
 
-function encodingHeader(headers: Record<string, string>): Promise<string | undefined> {
+const encodingHeader = (headers: Record<string, string>): Promise<string | undefined> => {
   return new Promise((resolve, reject) => {
     const req = request(`${baseUrl}/large.txt`, { headers }, response => {
       response.resume();
@@ -93,7 +93,7 @@ function encodingHeader(headers: Record<string, string>): Promise<string | undef
     req.on("error", reject);
     req.end();
   });
-}
+};
 
 test("compresses assets and honors the no-compression header", async () => {
   assert.equal(await encodingHeader({ "Accept-Encoding": "gzip" }), "gzip");
